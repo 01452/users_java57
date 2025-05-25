@@ -1,18 +1,15 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import * as process from 'process';
-import { User, UserSchema } from './model/user.schema';
 import { UsersController } from './controller/users.controller';
 import { UsersService } from './service/users.service';
-import { ConfigModule } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+import { User, UserSchema } from './model/user.schema';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
-    MongooseModule.forRoot(`${process.env.MONGO_URL}`),
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-  ],
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),],
   controllers: [UsersController],
   providers: [UsersService],
+  exports: [UsersService],
 })
-export class UsersModule {}
+export class UsersModule {
+}
