@@ -3,6 +3,7 @@ import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/co
 import { UsersService } from '../../users/service/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { RefreshTokenDto } from '../dto/refresh-token.dto';
 
 @Injectable()
 export class AuthService {
@@ -21,14 +22,34 @@ export class AuthService {
     return null;
   }
 
+  private generateTokens(payload: any) {
+    return {
+      access_token: this.jwtService.sign(payload, { expiresIn: '15m' }),
+      refresh_token: this.jwtService.sign(payload, { expiresIn: '7d' }),
+    };
+  }
+
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user || !(await bcrypt.compare(dto.password, user.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
     const payload = { sub: user._id, email: user.email };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+    return this.generateTokens(payload);
+  }
+
+  async refreshToken(dto: RefreshTokenDto) {
+    try {
+      const payload = this.jwtService.verify(dto.refresh_token);
+      const user = await this.usersService.findById(payload.sub);
+      
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      return this.generateTokens({ sub: user._id, email: user.email });
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 }
